@@ -177,7 +177,7 @@ def test_ldap_user_creation_invalid_group_or_household(
         assert user is None
 
 
-def test_claims_logging(caplog):
+def test_claims_logging(caplog, session: Session):
     caplog.set_level(logging.DEBUG)
     data = {
         "preferred_username": "testuser",
@@ -185,7 +185,7 @@ def test_claims_logging(caplog):
         "name": "Test User",
         "groups": ["mealie_user"],
     }
-    auth_provider = OpenIDProvider(None, data)
+    auth_provider = OpenIDProvider(session, data)
     auth_provider.authenticate()
 
     # Verify that all claims are logged
