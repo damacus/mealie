@@ -40,13 +40,21 @@ class OpenIDProvider(AuthProvider[UserInfo]):
         is_admin = False
         if settings.OIDC_REQUIRES_GROUP_CLAIM:
             group_claim = claims.get(settings.OIDC_GROUPS_CLAIM, []) or []
+            self._logger.debug("[OIDC] User groups: %s", group_claim)
+
+            # Check admin group first
             is_admin = settings.OIDC_ADMIN_GROUP in group_claim if settings.OIDC_ADMIN_GROUP else False
+            if is_admin:
+                self._logger.debug("[OIDC] User has admin group: %s", settings.OIDC_ADMIN_GROUP)
+
+            # Check user group
             is_valid_user = settings.OIDC_USER_GROUP in group_claim if settings.OIDC_USER_GROUP else True
+            if is_valid_user:
+                self._logger.debug("[OIDC] User has required user group: %s", settings.OIDC_USER_GROUP)
 
             if not (is_valid_user or is_admin):
                 self._logger.warning(
-                    "[OIDC] Successfully authenticated, but user does not have one of the required group(s). \
-                    Found: %s - Required (one of): %s",
+                    "[OIDC] User does not have required group membership. Groups: %s, Required (one of): %s",
                     group_claim,
                     [settings.OIDC_USER_GROUP, settings.OIDC_ADMIN_GROUP],
                 )

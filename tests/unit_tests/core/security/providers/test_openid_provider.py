@@ -162,3 +162,39 @@ def test_ldap_user_creation_invalid_group_or_household(
         assert user is not None
     else:
         assert user is None
+
+
+def test_claims_logging(caplog, session: Session):
+    caplog.set_level(logging.DEBUG)
+    data = {
+        "preferred_username": "testuser",
+        "email": "test@example.com",
+        "name": "Test User",
+        "groups": ["mealie_user"],
+    }
+    auth_provider = OpenIDProvider(session, data)
+    auth_provider.authenticate()
+
+    # Verify that all claims are logged
+    for key, value in data.items():
+        assert f"{key}: {value}" in caplog.text
+
+
+def test_group_logging(caplog, monkeypatch: MonkeyPatch, session: Session):
+    monkeypatch.setenv("OIDC_USER_GROUP", "mealie_user")
+    monkeypatch.setenv("OIDC_ADMIN_GROUP", "mealie_admin")
+    get_app_settings.cache_clear()
+
+    caplog.set_level(logging.DEBUG)
+    data = {
+        "preferred_username": "testuser",
+        "email": "test@example.com",
+        "name": "Test User",
+        "groups": ["mealie_user", "mealie_admin"],
+    }
+    auth_provider = OpenIDProvider(session, data)
+    auth_provider.authenticate()
+
+    # Verify group membership logging
+    assert "User has admin group: mealie_admin" in caplog.text
+    assert "User has required user group: mealie_user" in caplog.text
